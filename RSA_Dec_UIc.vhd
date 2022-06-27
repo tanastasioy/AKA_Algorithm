@@ -6,105 +6,125 @@ entity RSA_Dec_UIc is
 	
 	generic (WIDTH_IN : integer := 128
 	);
-	port(	UIc :	in unsigned(4*WIDTH_IN-1 downto 0);
-		R1   :	out unsigned(WIDTH_IN-1 downto 0);
-		R2   :	out unsigned(WIDTH_IN-1 downto 0);
-		IDSN :	out unsigned(WIDTH_IN-1 downto 0);
-		SUPI :	out unsigned(WIDTH_IN-1 downto 0);
-		clk :	  in std_logic;
-		reset :	  in std_logic		
+	port(	
+	    UIc     :	in  std_logic_vector(4*WIDTH_IN-1 downto 0);
+		R1  	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		R2   	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		IDSN 	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		SUPI 	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		remain 	:	in  std_logic_vector(3 downto 0);
+		fin     :   out std_logic;
+		start   :   in  std_logic;
+		clk 	:	in  std_logic;
+		reset 	:	in  std_logic		
 	);
 end entity;
 
 architecture test of RSA_Dec_UIc is
 
 component modular_exponentiation is
- 	generic(
-		WIDTH_IN : integer := 128
+
+	generic(WIDTH_IN : integer := 128
 	);
-	port(	N :	in unsigned(WIDTH_IN-1 downto 0); --Number
-		Exp :	in unsigned(WIDTH_IN-1 downto 0); --Exponent
-		M :	in unsigned(WIDTH_IN-1 downto 0); --Modulus
+	port(	N :	  in unsigned(WIDTH_IN-1 downto 0); --Number
 		enc_dec:  in std_logic;
-		clk :	in std_logic;
-		reset :	in std_logic;
-		C : 	out unsigned(WIDTH_IN-1 downto 0) --Output
-		
-	);
-
-end component;
-component split is
-	
-	generic(WIDTH_IN: integer :=128
-	);
-	port(	UIc	 : in unsigned(4*WIDTH_IN-1 downto 0); 
-		SUPI_en	 : out unsigned(WIDTH_IN-1 downto 0); 
-		R1_en	 : out unsigned(WIDTH_IN-1 downto 0); 
-		R2_en	 : out unsigned(WIDTH_IN-1 downto 0); 
-		IDSN_en	 : out unsigned(WIDTH_IN-1 downto 0)
+		finish:   out std_logic;
+		start:    in std_logic;
+		clk :	  in std_logic;
+		reset :	  in std_logic;
+		C : 	  out std_logic_vector(WIDTH_IN-1 downto 0) --Output
 	);
 end component;
 
-Signal M_in	: unsigned(WIDTH_IN-1 downto 0) := "10001111001101011110110011100010000110011010101111100000000100111010111101001011100101010000111011111011011100001001001100111101";
-Signal Exp_in	: unsigned(WIDTH_IN-1 downto 0) := "01000010101011001010100010001100110110111100011011011001100101010000100001101100011101011101010010101111100011111011111101000001";
+Signal IDSN_in	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R1_in	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R2_in	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal SUPI_in	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal IDSN_O	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R1_O 	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R2_O 	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal SUPI_O	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal enc_dec_in : std_logic := '0';
+Signal IDSN_out	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R1_out	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R2_out	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal SUPI_out	 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal IDSN_out	 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal R1_out	 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal R2_out	 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal SUPI_out	 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
+Signal C_out0 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal C_out1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal C_out2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal C_out3 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+
+Signal f1,f2,f3,f4,finish: std_logic  := '0';
 
 Begin
 
-mer: split 
-			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	UIc	 	=>	UIc,
-					SUPI_en	 	=>	SUPI_out,
-					R1_en	 	=>	R1_out,
-					R2_en	 	=>	R2_out,
-					IDSN_en 	=>	IDSN_out
-				);
+    SUPI_in  <=	UIc(4*WIDTH_IN-1 downto 3*WIDTH_IN);
+    R1_in	 <=	UIc(3*WIDTH_IN-1 downto 2*WIDTH_IN);
+    R2_in	 <=	UIc(2*WIDTH_IN-1 downto WIDTH_IN);
+    IDSN_in  <=	UIc(WIDTH_IN-1 downto 0);		
+    SUPI_O   <= SUPI_out when finish='1' else (others=>'0');
+    R1_O	 <=	R1_out when finish='1' else (others=>'0');
+    R2_O	 <=	R2_out when finish='1' else (others=>'0');
+    IDSN_O   <= IDSN_out when finish='1' else (others=>'0');	
+    
+	process(clk)
+        begin
+            if (clk'event and clk='1') then
+                  SUPI <=	SUPI_O;
+                  R1	 <=	R1_O;
+                  R2	 <=	R2_O;
+                  IDSN <=	IDSN_O;		
+                  fin <= finish;
+            end if;
+        end process;
 dut0: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	SUPI_out,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
-					clk	=> 	clk,
+			PORT MAP(	
+					N		=> 	unsigned(SUPI_in),
+					enc_dec =>	'0',
+					clk		=> 	clk,
 					reset 	=>	reset,
-					C	=>	SUPI
+					start   =>  start,
+					finish  =>  f1,
+					C		=>	C_out0 --SUPI_out
 				);
-
+    SUPI_out <= remain(3) & C_out0(126 downto 0);
 dut1: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	R1_out,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
-					clk	=> 	clk,
+			PORT MAP(	
+					N		=> 	unsigned(R1_in),
+					enc_dec =>	'0',
+					clk		=> 	clk,
 					reset 	=>	reset,
-					C	=>	R1
-				);
+					start   =>  start,
+					finish  =>  f2,
+					C		=>	C_out1 --R1_out
+				);	
+    R1_out <= remain(2) & C_out1(126 downto 0);
 dut2: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	R2_out,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
-					clk	=> 	clk,
+			PORT MAP(	
+					N		=> 	unsigned(R2_in),
+					enc_dec =>	'0',
+					clk		=> 	clk,
 					reset 	=>	reset,
-					C	=>	R2
+					start   =>  start,
+					finish  =>  f3,
+					C		=>	C_out2 --R2_out
 				);
+    R2_out <= remain(1) & C_out2(126 downto 0);				
 dut3: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	IDSN_out,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
-					clk	=> 	clk,
+			PORT MAP(	
+					N		=> 	unsigned(IDSN_in),
+					enc_dec =>	'0',
+					clk		=> 	clk,
 					reset 	=>	reset,
-					C	=>	IDSN
+					start   =>  start,
+					finish  =>  f4,
+					C		=>	C_out3 --IDSN_out
 				);
-  
+    IDSN_out <= remain(0) & C_out3(126 downto 0);  
+	   finish <= f1 and f2 and f3 and f4;
 end;

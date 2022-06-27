@@ -26,7 +26,6 @@ architecture behavioral of montgomery_multiplier is
 -- Signals
 Signal M_temp : unsigned(WIDTH_IN+1 downto 0) := (others => '0');
 Signal state : integer := 0;
-Signal count : integer := 0;
 Signal B_reg : unsigned(WIDTH_IN-1 downto 0) := (others => '0');
 Signal A_reg : unsigned(WIDTH_IN-1 downto 0) := (others => '0');
 Signal B_zeros : unsigned(WIDTH_IN-1 downto 0) := (others => '0');
@@ -43,7 +42,6 @@ Begin
 				if latch = '1' then
 					data_ready <= '0';
 					M_temp <= (others => '0');
-					count <= 0;
 					B_reg <= B;
 					A_reg <= A;
 					N_temp <= N;

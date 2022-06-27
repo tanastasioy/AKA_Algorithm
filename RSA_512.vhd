@@ -2,115 +2,100 @@ library ieee;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity RSA_512 is
+entity RSA_KSEAF is
 	
 	generic (WIDTH_IN : integer := 128
 	);
 	port(	
-		EK_AES	:	in unsigned(4*WIDTH_IN-1 downto 0);
-		EK	:	out unsigned(4*WIDTH_IN-1 downto 0);
+		EK_AES	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
+		EK	:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
+		remain 	:	out std_logic_vector(2 downto 0);
 		clk	:	in std_logic;
+		fin :   out std_logic;
+		start :   in std_logic;
 		reset	:	in std_logic	
 	);
 end entity;
 
 
-architecture test of RSA_512 is
+architecture test of RSA_KSEAF is
 
 component modular_exponentiation is
- 	generic(
-		WIDTH_IN : integer := 128
+
+	generic(WIDTH_IN : integer := 128
 	);
-	port(	N :	in unsigned(WIDTH_IN-1 downto 0); --Number
-		Exp :	in unsigned(WIDTH_IN-1 downto 0); --Exponent
-		M :	in unsigned(WIDTH_IN-1 downto 0); --Modulus
+	port(	N :	  in unsigned(WIDTH_IN-1 downto 0); --Number
 		enc_dec:  in std_logic;
-		clk :	in std_logic;
-		reset :	in std_logic;
-		C : 	out unsigned(WIDTH_IN-1 downto 0) --Output
-		
-	);
-
-end component;
-
-component splitek is
-	generic(	
-		WIDTH_IN: integer :=128
-	);
-	port(	input	 : in unsigned(4*WIDTH_IN-1 downto 0); 
-		out1 	 : out unsigned(WIDTH_IN-1 downto 0); 
-		out2	 : out unsigned(WIDTH_IN-1 downto 0); 
-		out3	 : out unsigned(WIDTH_IN-1 downto 0); 
-		out4	 : out unsigned(WIDTH_IN-1 downto 0)
+		finish:   out std_logic;
+		start:    in std_logic;
+		clk :	  in std_logic;
+		reset :	  in std_logic;
+		C : 	  out std_logic_vector(WIDTH_IN-1 downto 0) --Output
 	);
 end component;
 
-Signal M_in : unsigned(WIDTH_IN-1 downto 0) := "10001111001101011110110011100010000110011010101111100000000100111010111101001011100101010000111011111011011100001001001100111101";
-Signal Exp_in : unsigned(WIDTH_IN-1 downto 0) := "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000001";
+Signal EKa : std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal EK_rsa0 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK_rsa1 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK_rsa2 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK_rsa3 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
+Signal EK_rsa0 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK_rsa1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK_rsa2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal RSA_c : std_logic_vector(2 downto 0) := (others=>'0');
 
-Signal EK0 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK1 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK2 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal EK3 : unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
+Signal EK0 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
+Signal f1,f2,f3,finish: std_logic := '0';
 
 Signal enc_dec_in : std_logic := '1';
-
+    
 begin 
-	splitit: splitek
-			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	input	=>	EK_AES,
-					out1	=>	EK_rsa0,
-					out2	=>	EK_rsa1,
-					out3	=>	EK_rsa2,
-					out4	=>	EK_rsa3
-				);
-
+        
+    EK_rsa0	 <=	"0" & EK_AES(WIDTH_IN-2 downto 0);
+	EK_rsa1	 <=	"0" & EK_AES(2*WIDTH_IN-2 downto WIDTH_IN);
+	EK_rsa2	 <=	"0" & EK_AES(3*WIDTH_IN-2 downto 2*WIDTH_IN);
+	RSA_c <=  EK_AES(3*WIDTH_IN-1) & EK_AES(2*WIDTH_IN-1) & EK_AES(WIDTH_IN-1) when finish='1' else (others=>'0');
+	
 	dut0: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	EK_rsa0,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
+			PORT MAP(	N	=> 	unsigned(EK_rsa0),
+					enc_dec => '1',
 					clk	=> 	clk,
 					reset 	=>	reset,
+					start   =>  start,
+					finish  =>  f1,
 					C	=>	EK0
 				);
 
 	dut1: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	EK_rsa1,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
+			PORT MAP(	N	=> 	unsigned(EK_rsa1),
+					enc_dec => '1',
 					clk	=> 	clk,
 					reset 	=>	reset,
+					start   =>  start,
+					finish  =>  f2,
 					C	=>	EK1
 				);
 	dut2: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	EK_rsa2,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
+			PORT MAP(	N	=> 	unsigned(EK_rsa2),
+					enc_dec =>	'1',
 					clk	=> 	clk,
 					reset 	=>	reset,
+					start   =>  start,
+					finish  =>  f3,
 					C	=>	EK2
 				);
-	dut3: modular_exponentiation 
-			generic map(WIDTH_IN => WIDTH_IN)
-			PORT MAP(	N	=> 	EK_rsa3,
-					Exp 	=> 	Exp_in,
-					M 	=> 	M_in,
-					enc_dec =>	enc_dec_in,
-					clk	=> 	clk,
-					reset 	=>	reset,
-					C	=>	EK3
-				);
-	EK <= EK0 & EK1 & EK2 & EK3;
+				
+	   finish <= f1 and f2 and f3;
+	   process(clk)
+        begin
+            if (clk'event and clk='1') then
+                  EK <= EKa;
+                  fin <= finish;
+                  remain <= RSA_c;
+            end if;
+        end process;
+	EKa <= EK2 & EK1 & EK0 when finish ='1' else (others=>'0');
 end;

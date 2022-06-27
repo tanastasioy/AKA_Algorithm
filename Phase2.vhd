@@ -7,15 +7,20 @@ entity phase2 is
 	generic (WIDTH_IN : integer := 128
 	);
 	port(	
-		SUCI		:	in  unsigned(5*WIDTH_IN-1 downto 0);
-		req_id  	:	in  unsigned(2*WIDTH_IN-1 downto 0);
-		IDSN		:	in  unsigned(WIDTH_IN-1 downto 0);
-		HN_R		:	out unsigned(WIDTH_IN-1 downto 0);
-		req_id_o	:	out unsigned(2*WIDTH_IN-1 downto 0);
-		hxRES		:	out unsigned(2*WIDTH_IN-1 downto 0);
-		xMAC		:	out unsigned(3*WIDTH_IN-1 downto 0);
-		EK			:	out unsigned(4*WIDTH_IN-1 downto 0);
-		res_id		:	out unsigned(2*WIDTH_IN-1 downto 0);
+		SUCI		:	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
+		req_id  	:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
+		IDSN		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		HN_R		:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		req_id_o	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		hxRES		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		xMAC		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		KSEAF		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		EK			:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
+		res_id		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		remainuic   :	in  std_logic_vector(3 downto 0);
+		remainek    :	out std_logic_vector(2 downto 0);
+		fin         :   out std_logic;
+		start       :   in  std_logic;
 		req_abort	:	out std_logic;
 		clk			:	in  std_logic;
 		reset		:	in  std_logic	
@@ -26,211 +31,207 @@ architecture test of phase2 is
 
 constant WORD_SIZE : natural := 32;
 
-component split_suci is
-	generic(	
-		WIDTH_IN: integer :=128
-	);
-	port(	SUCI	 : in  unsigned(5*WIDTH_IN-1 downto 0); 
-		IDHN	 : out unsigned(WIDTH_IN-1 downto 0); 
-		UIc	 : out unsigned(4*WIDTH_IN-1 downto 0)
-	);
-end component;
-
 
 component RSA_Dec_UIc is
 	
 	generic (WIDTH_IN : integer := 128
 	);
-	port(	UIc	:	in  unsigned(4*WIDTH_IN-1 downto 0);
-		R1	:	out unsigned(WIDTH_IN-1 downto 0);
-		R2	:	out unsigned(WIDTH_IN-1 downto 0);
-		IDSN	:	out unsigned(WIDTH_IN-1 downto 0);
-		SUPI	:	out unsigned(WIDTH_IN-1 downto 0);
-		clk	:	in  std_logic;
+	port(	UIc	:	in  std_logic_vector(4*WIDTH_IN-1 downto 0);
+		R1	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		R2	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		IDSN	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		SUPI	:	out std_logic_vector(WIDTH_IN-1 downto 0);
+		remain 	:	in  std_logic_vector(3 downto 0);
+		fin     :   out std_logic;
+		start   :   in  std_logic;
+		clk	    :	in  std_logic;
 		reset 	:	in  std_logic		
 	);
 end component;
 
 
-component req_id_sha is
-	
+component req_id_sha is	
 	generic (WIDTH_IN : integer := 128
 	);
-	port(	SUCI  	 :	in  unsigned(5*WIDTH_IN-1 downto 0);
-		R1   	 :	in  unsigned(WIDTH_IN-1 downto 0);
-		IDSN 	 :	in  unsigned(WIDTH_IN-1 downto 0);
-		IDHN	 :	in  unsigned(WIDTH_IN-1 downto 0);
-		req_id	 :	out unsigned(2*WIDTH_IN-1 downto 0);
-		clk	 :	in  std_logic;
-		--start	 :	in  std_logic;
-		fin	 :	out std_logic;
+	port(	
+		R1   	 :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		IDSN 	 :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		IDHN	 :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+	    SUCI  	 :	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
+		req_id	 :	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		fin      :  out std_logic;
+		start    :  in  std_logic;
+		clk	     :	in  std_logic;
 		reset	 :	in  std_logic		
 	);
-
 end component;
 
-component aes_enc is 
-	port (
-		clk 		: in  std_logic;
-		rst 		: in  std_logic;
-		key 		: in  std_logic_vector(127 downto 0);
-		plaintext 	: in  std_logic_vector(127 downto 0);
-		ciphertext 	: out std_logic_vector(127 downto 0)
-	);
+component aes_enc is
+    port (  clk         : in std_logic; -- Clock.
+            rst         : in std_logic; -- Reset.
+            enable      : in std_logic; -- Enable.
+            key         : in std_logic_vector(127 downto 0); -- Secret key.
+            input       : in std_logic_vector(127 downto 0); -- Input (plaintext or ciphertext).
+            output      : out std_logic_vector(127 downto 0); -- Output (plaintext or ciphertext).
+            complete    : out std_logic); -- Identify when the operation is complete.
 end component;
 
-component merge3w is
-	
-	generic(WIDTH_IN: integer :=128
+component HMACSHA256 is
+    generic (WIDTH_IN : integer := 128
 	);
-	port(	in_1		: in  unsigned(WIDTH_IN-1 downto 0); 
-		in_2		: in  unsigned(WIDTH_IN-1 downto 0); 
-		in_3 		: in  unsigned(WIDTH_IN-1 downto 0); 
-		merged_out 	: out unsigned(3*WIDTH_IN-1 downto 0)
-	);
-end component;
-
-component merge_512 is
-	
-	generic(WIDTH_IN: integer :=128
-	);
-	port(	in_1 		: in  unsigned(WIDTH_IN-1 downto 0); 
-		in_2 		: in  unsigned(3*WIDTH_IN-1 downto 0); 
-		merged_out 	: out unsigned(4*WIDTH_IN-1 downto 0)
+	port(
+	     plaintext :   in  std_logic_vector(3*WIDTH_IN-1 downto 0);
+	     key       :   in  std_logic_vector(WIDTH_IN-1 downto 0);
+	     hmacout   :   out std_logic_vector(2*WIDTH_IN-1 downto 0);
+	     start     :   in  std_logic;
+	     finish    :   out std_logic;
+	     clock     :   in  std_logic;
+	     reset     :   in  std_logic
 	);
 end component;
 
-component hmac_sha384 is
-	port (	clk		: in  std_logic;
-  		msg		: in  std_logic_vector((96*4)-1 downto 0);
-  		hashed_code	: out std_logic_vector(383 downto 0);
-		start 		: in  std_logic
-	);
-end component;
-
-component hmac_sha384_xres is
-	port (	clk		: in  std_logic;
-  		msg		: in  std_logic_vector((128*4)-1 downto 0);
-  		hashed_code	: out std_logic_vector(383 downto 0);
-		start 		: in  std_logic
-	);
-end component;
-
-component hmac_sha384_kseaf is
-	port (	clk		: in  std_logic;
-  		msg		: in  std_logic_vector((128*4)-1 downto 0);
-  		hashed_code	: out std_logic_vector(383 downto 0);
-		start 		: in  std_logic
-	);
-end component;
-
-component hmac_sha384_xmac is
-	port (	clk		: in  std_logic;
-  		msg		: in  std_logic_vector((128*4)-1 downto 0);
-  		hashed_code	: out std_logic_vector(383 downto 0);
-		start 		: in  std_logic
-	);
-end component;
-
-
-component AES_512 is
+component AES_KSEAF is
 	
 	generic (WIDTH_IN : integer := 128
 	);
 	port(	
-		KSEAF	:	in  std_logic_vector(3*WIDTH_IN-1 downto 0);
-		SUPI	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		xRES	:	in  std_logic_vector(3*WIDTH_IN-1 downto 0);
-		EK_AES	:	out unsigned(4*WIDTH_IN-1 downto 0);
-		clk	:	in  std_logic;
-		rst	:	in  std_logic	
+		KSEAF	:	in std_logic_vector(2*WIDTH_IN-1 downto 0);
+		SUPI	:	in std_logic_vector(WIDTH_IN-1 downto 0);
+		xRES	:	in std_logic_vector(2*WIDTH_IN-1 downto 0);
+		EK_AES	:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
+		start   :   in  std_logic;
+		fin :   out std_logic;
+		clk	:	in std_logic;
+		rst	:	in std_logic	
 	);
 end component;
 
-component RSA_512 is
+component RSA_KSEAF is
 	
 	generic (WIDTH_IN : integer := 128
 	);
 	port(	
-		EK_AES	:	in  unsigned(4*WIDTH_IN-1 downto 0);
-		EK	:	out unsigned(4*WIDTH_IN-1 downto 0);
-		clk	:	in  std_logic;
-		reset	:	in  std_logic	
+		EK_AES	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
+		EK	    :	out std_logic_vector(3*WIDTH_IN-1 downto 0);		
+		remain 	:	out std_logic_vector(2 downto 0);
+		fin     :   out std_logic;
+		clk	    :	in std_logic;
+		start   :   in std_logic;
+		reset	:	in std_logic	
 	);
 end component;
 
-
-component sha_256_core2 is
+component SHA_384_256 is
     generic(
         WORD_SZ : natural := 32;
-        RESET_VALUE : std_logic := '0'    --reset enable value
+        RESET_VALUE : std_logic := '1'    --reset enable value
     );
     port(
-        clk 		: in  std_logic;
-        rst 		: in  std_logic;
-        data_ready 	: in  std_logic;  --the edge of this signal triggers the capturing of input data and hashing it.
-        n_blocks 	: in  natural; --N, the number of (padded) message blocks
-        msg_block_in 	: in  std_logic_vector(0 to (16 * WORD_SZ)-1);
-        --mode_in 	: in  std_logic;
-        finished 	: out std_logic;
-        data_out 	: out std_logic_vector((WORD_SZ * 8)-1 downto 0) --SHA-256 results in a 256-bit hash value
+        plaintext : in std_logic_vector(0 to (12*WORD_SZ)-1);
+        hash_out  : out std_logic_vector(0 to (8*WORD_SZ)-1); --SHA-256 results in a 256-bit hash value
+        clk       : in std_logic;
+        rst       : in std_logic;
+        start     : in std_logic;  --the edge of this signal triggers the capturing of input data and hashing it.
+        finish    : out std_logic
     );
 end component;
 
-component resid is
-	generic (WIDTH_IN : integer := 128
-	);
-	port(	hxRES	 :	in  unsigned(2*WIDTH_IN-1 downto 0);
-		xMAC	 :	in  unsigned(3*WIDTH_IN-1 downto 0);
-		EK	 :	in  unsigned(4*WIDTH_IN-1 downto 0);
-		res_id	 :	out unsigned(2*WIDTH_IN-1 downto 0);
-		fin	 :	out std_logic;
-		clk	 :	in  std_logic;
-		reset	 :	in  std_logic		
-	);
+component SHA_896_256 is
+    generic(
+        WORD_SZ : natural := 32;
+        RESET_VALUE : std_logic := '1'    --reset enable value
+    );
+    port(
+        plaintext : in std_logic_vector(0 to (28*WORD_SZ)-1);
+        hash_out  : out std_logic_vector(0 to (8*WORD_SZ)-1); --SHA-256 results in a 256-bit hash value
+        clk       : in std_logic;
+        rst       : in std_logic;
+        start     : in std_logic;  --the edge of this signal triggers the capturing of input data and hashing it.
+        finish    : out std_logic
+    );
 end component;
 
-Signal SUPI_in	: unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal R1_in 	: unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal R2_in 	: unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal R3_in 	: unsigned(WIDTH_IN-1 downto 0) := "01011101100100111010101010111011011011000001011100011100001101100010111000000000101010001110100010010101011011100110111110000101";
-Signal IDSN_in 	: unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal IDHN_in 	: unsigned(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal UIc_in 	: unsigned(4*WIDTH_IN-1 downto 0) := (4*WIDTH_IN-1 downto 0 => '0');
-Signal SUCI_in	: unsigned(5*WIDTH_IN-1 downto 0) := (5*WIDTH_IN-1 downto 0 => '0');
-Signal O_in 	: unsigned(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal Oo 		: unsigned(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal Mer512 	: unsigned(4*WIDTH_IN-1 downto 0) := (4*WIDTH_IN-1 downto 0 => '0');
-Signal KSEAF 	: unsigned(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal xRES 	: unsigned(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal xxMAC 	: unsigned(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal xhxRES 	: unsigned(2*WIDTH_IN-1 downto 0) := (2*WIDTH_IN-1 downto 0 => '0');
-Signal xEK 		: unsigned(4*WIDTH_IN-1 downto 0) := (4*WIDTH_IN-1 downto 0 => '0');
-Signal xRESR1 	: unsigned(4*WIDTH_IN-1 downto 0) := (4*WIDTH_IN-1 downto 0 => '0');
-Signal EK_AES 	: unsigned(4*WIDTH_IN-1 downto 0) := (4*WIDTH_IN-1 downto 0 => '0');
-Signal xreq_id 	: unsigned(2*WIDTH_IN-1 downto 0) := (2*WIDTH_IN-1 downto 0 => '0');
-Signal res_id_o : unsigned(2*WIDTH_IN-1 downto 0) := (2*WIDTH_IN-1 downto 0 => '0');
-Signal req_id_v : unsigned(2*WIDTH_IN-1 downto 0) := (2*WIDTH_IN-1 downto 0 => '0');
-Signal HN_Rv 	: std_logic_vector(WIDTH_IN-1 downto 0) := (WIDTH_IN-1 downto 0 => '0');
-Signal O_out	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal KSEAFv 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal xRESv 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal xMACv 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (3*WIDTH_IN-1 downto 0 => '0');
-Signal hxRESstd : std_logic_vector(2*WIDTH_IN-1 downto 0) := (2*WIDTH_IN-1 downto 0 => '0');
+Signal SUPI_in	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal SUPI_ina	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R1_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R2_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal R3_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal IDSN_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal IDHN_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal UIc_in 	: std_logic_vector(4*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal O_in 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal Mer512 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xRES 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xxMAC 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xMAC_O 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xMACv 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xhxRES 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xhRES_O 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xEK 		: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK_in	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xEK_O	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xRESR1 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal EK_AES 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xreq_id 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal res_id_o : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal res_id_v : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal req_id_v : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal req_id_ou: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal HN_Rv 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal HN_R_O 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal O_out	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal KSEAFv 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal KSEAFo 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xRESv 	: std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xres_id 	: std_logic_vector(7*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal hxRESstd : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
+Signal O_key    : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal KSEAF_key: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xRES_key : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
+Signal xMAC_key : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal startO, startK,startsha : std_logic := '0';
-Signal fin 	: std_logic := '0';
-Signal finish 	: std_logic := '0';
-Signal abort 	: std_logic := '0';
+Signal RSA_eko : std_logic_vector(2 downto 0) := (others=>'0');
+Signal RSA_ek  : std_logic_vector(2 downto 0) := (others=>'0');
+
+Signal abort,abort_req,finish,finrsa,fino,finkseaf,finxres,finxmac,finkeyh,finrsakseaf,finxresr1,finhxres : std_logic := '0';
+Signal finresid,startresid,finreqid,finhnr,finaeskseaf : std_logic := '0';
 
 Begin
-	
-	spsuci: split_suci 
-		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	SUCI	=>	SUCI,
-				IDHN	=>	IDHN_in,
-				UIc	=>	UIc_in
-			);
+
+    R3_in <= X"5D93AABB6C171C362E00A8E8956E6F85" when start='1' else (others=>'0');
+    O_key <= x"E67FF540BA6F5C5B9FEFC68B395EC328" when start='1' else (others=>'0');
+    KSEAF_key <= x"792F423F4528482B4D6251655468576D" when start='1' else (others=>'0');
+    xRES_key <= x"7A25432A462D4A614E645267556A586E" when start='1' else (others=>'0');
+    xMAC_key <= x"5166546A576E5A7234753777217A2543" when start='1' else (others=>'0');    
+    
+    res_id_v  <= res_id_o when finish='1' else (others=>'0');
+    HN_R_O    <= HN_Rv    when finish='1' else (others=>'0');
+    req_id_ou <= req_id_v when finish='1' else (others=>'0');
+    xMAC_O    <= xxMAC    when finish='1' else (others=>'0');
+    xhRES_O   <= xhxRES   when finish='1' else (others=>'0');
+	xEK_O     <= xEK      when finish='1' else (others=>'0');
+	KSEAFo     <= KSEAFv  when finish='1' else (others=>'0');
+	abort_req <= abort    when finish='1' else '1';
+	RSA_eko   <= RSA_ek   when finish='1' else (others=>'0');
+    
+	process(clk)
+    begin
+        if (clk'event and clk='1') then
+               res_id   <= res_id_v;
+	           xMAC     <= xMAC_O;
+	           HN_R     <= HN_R_O;
+	           hxRES    <= xhRES_O;
+	           EK       <= xEK_O;
+	           KSEAF    <= KSEAFo;
+	           req_abort<= abort_req;
+	           req_id_o <= req_id_ou;
+	           remainek <= RSA_eko;
+	           fin <= finish; 
+        end if;
+    end process;
+    
+	IDHN_in	 <=	SUCI(5*WIDTH_IN-1 downto 4*WIDTH_IN) when start='1' else (others=>'0');
+	UIc_in	 <=	SUCI(4*WIDTH_IN-1 downto 0) when start='1' else (others=>'0');
 
 	RSA_Dec: RSA_Dec_UIc 
 		generic map (WIDTH_IN => WIDTH_IN)
@@ -240,139 +241,143 @@ Begin
 				R2	=>	R2_in,
 				IDSN	=>	IDSN_in,
 				SUPI	=>	SUPI_in,
-				clk	=>	clk,
+				remain  =>  remainuic,
+				fin     =>  finrsa,
+				start   =>  start,
+				clk	    =>	clk,
 				reset	=>	reset
 			);
-			
+	
 	reqid: req_id_sha 
-		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	SUCI  	 =>	SUCI,
+		generic map(WIDTH_IN => WIDTH_IN)--
+		port map(	
+		        SUCI  	 =>	SUCI,
 				R1   	 =>	R1_in,
-				IDSN 	 =>	IDSN_in,
+				IDSN 	 =>	IDSN,
 				IDHN	 =>	IDHN_in,
 				req_id	 =>	xreq_id,
+				start    => finrsa,
+				fin      => finreqid,
 				clk	 =>	clk,
-				--start	 =>	start,
-				fin	 =>	fin,
 				reset	 =>	reset
 		);
 		
 	abort <= '0' when xreq_id = req_id else '1'; 
-	req_id_v <= req_id when  abort = '0';
+	req_id_v <= xreq_id when  abort = '0' else (others=>'0');
 	
 	hnr_aes: aes_enc 
-		port map(	clk		=>	clk,
+		port map(	
+		        clk		=>	clk,
 				rst		=>	reset,
-				key		=>	std_logic_vector(R2_in),
-				plaintext	=>	std_logic_vector(R3_in),
-				ciphertext	=>	HN_Rv
+				enable  =>  finrsa,
+				complete=>  finhnr,
+				key		=>	R2_in,
+				input	=>	R3_in,
+				output	=>	HN_Rv
 		);
+	O_in <= R1_in & R2_in & R3_in  when finrsa='1'  else (others=>'0');
 	
-	mergeO: merge3w
+	O_init: HMACSHA256
+	   port map(
+	           plaintext   =>  O_in,
+	           clock       =>  clk,
+	           reset       =>  reset,
+	           start       =>  finrsa,
+	           finish      =>  fino,
+	           key         =>  O_key,
+	           hmacout     =>  O_out	   
+	   );
+	   
+    Mer512 <= IDSN_in & O_out when fino='1'  else (others=>'0');
+    
+	KSEAFp: HMACSHA256
+	   port map(
+	           plaintext   =>  Mer512,
+	           clock       =>  clk,
+	           reset       =>  reset,
+	           start       =>  fino,
+	           finish      =>  finkseaf,
+	           key         =>  KSEAF_key,
+	           hmacout     =>  KSEAFv	   
+	   );
+		
+
+	xRESp: HMACSHA256
+	   port map(
+	           plaintext   =>  Mer512,
+	           clock       =>  clk,
+	           reset       =>  reset,
+	           start       =>  fino,
+	           finish      =>  finxres,
+	           key         =>  xRES_key,
+	           hmacout     =>  xRESv	   
+	   );
+		
+	xMACp: HMACSHA256
+	   port map(
+	           plaintext   =>  Mer512,
+	           clock       =>  clk,
+	           reset       =>  reset,
+	           start       =>  fino,
+	           finish      =>  finxmac,
+	           key         =>  xMAC_key,
+	           hmacout     =>  xMACv	   
+	   );
+	   
+	finkeyh <= finxres and finkseaf and finxmac;
+	xRES <= xRESv when finkeyh='1' else (others=>'0');
+	xxMAC <= xMACv when finkeyh='1' else (others=>'0');
+    SUPI_ina <= SUPI_in when finkeyh='1' else (others=>'0');
+    
+	ekaes: AES_KSEAF 
 		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	in_1		=>	R1_in,
-				in_2		=>	R2_in,
-				in_3		=>	R3_in,
-				merged_out	=>	O_in
-		);
-		
-	startO <= '0' when to_integer(R2_in)=0 else '1';
-	
-	O_init: hmac_sha384 
-		port map(	clk		=>	clk,
-  				msg		=>	std_logic_vector(O_in),
-  				hashed_code	=>	O_out,
-				start		=>	startO
-		);
-		
-	Oo<= unsigned(O_out);
-	startK <= '0' when to_integer(Oo)=0 else '1';
-
-	merge512: merge_512
-		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	in_1		=>	IDSN_in,
-				in_2		=>	unsigned(O_out),
-				merged_out	=>	Mer512
-		);
-
-	KSEAFp: hmac_sha384_kseaf
-		port map(	clk		=>	clk,
-  				msg		=>	std_logic_vector(Mer512),
-  				hashed_code	=>	KSEAFv,
-				start		=>	startK
-		);
-		
-	KSEAF <= unsigned(KSEAFv);
-
-	xRESp: hmac_sha384_xres
-		port map(	clk		=>	clk,
-  				msg		=>	std_logic_vector(Mer512),
-  				hashed_code	=>	xRESv,
-				start		=>	startK
-		);
-		
-	xRES <= unsigned(xRESv);
-
-	xMACp: hmac_sha384_xmac
-		port map(	clk		=>	clk,
-  				msg		=>	std_logic_vector(Mer512),
-  				hashed_code	=>	xMACv,
-				start		=>	startK
-		);
-		
-	xxMAC <= unsigned(xMACv);
-
-	ekaes: AES_512 
-		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	clk		=>	clk,
-				rst		=>	reset,
+		port map(	
+		        clk	      	=>	clk,
+				rst		    =>	reset,
+				start       =>  finkeyh,
+				fin         =>  finaeskseaf,
 				xRES		=>	xRESv,
 				KSEAF		=>	KSEAFv,
-				SUPI		=>	std_logic_vector(SUPI_in),
+				SUPI		=>	SUPI_ina,
 				EK_AES		=>	EK_AES
 		);
-		
-	ekrsa: RSA_512 	
+	EK_in <= EK_AES when finaeskseaf='1' else (others=>'0');
+	ekrsa: RSA_KSEAF 	
 		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	EK_AES		=>	EK_AES,
+		port map(	EK_AES		=>	EK_in,
 				EK		=>	xEK,
 				clk		=>	clk,
-				reset		=>	reset
+				remain  =>  RSA_ek,
+				fin     =>  finrsakseaf,
+				start   =>  start,
+				reset	=>	reset
 		);
 		
-	xRESR1 <= xRES & R1_in;
-	startsha <= '0' when to_integer(xRES)=0 else '1';
+	finxresr1 <= finrsa and finxres;
+	xRESR1 <= xRES & R1_in when finxresr1='1' else (others=>'0');
 	
-	sha256xres: sha_256_core2
-		generic map(RESET_VALUE		=>	'1' )
-   		PORT MAP(	clk		=>	clk,
-			        rst		=>	reset,
-			        data_ready	=>	startsha,
-			        n_blocks	=>	1,
-			        msg_block_in	=>	std_logic_vector(xRESR1),
-			        finished	=>	fin,
-			        data_out	=>	hxRESstd
-			);
+	sha256xres: SHA_384_256
+		PORT MAP(	
+					clk			=>	clk,
+        			rst			=>	reset,
+        			start           =>  finxresr1,
+        			finish          =>  finhxres,
+        			plaintext       =>	xRESR1,
+        			hash_out	    =>	hxRESstd
+    			);
 			
-	xhxRES <= unsigned(hxRESstd);
+	xhxRES <= hxRESstd when finhxres='1'  else (others=>'0');
+	startresid <= finhxres and finxmac and finrsakseaf;
 	
-	residf: resid 
-		generic map(WIDTH_IN => WIDTH_IN)
-		port map(	hxRES		=>	xhxRES,
-				xMAC		=>	xxMAC,
-				EK		=>	xEK,
-				res_id		=>	res_id,
-				clk		=>	clk,
-				fin		=>	finish,
-				reset		=>	reset
-		);	
-		
-	res_id <= res_id_o when finish='1';
-	xMAC <= unsigned(xMACv) when finish='1';
-	HN_R <= unsigned(HN_Rv) when finish='1';
-	hxRES <= unsigned(hxRESstd) when finish ='1';
-	EK <= xEK when finish ='1';
-	req_abort <= abort when finish ='1';
-	req_id_o <= req_id_v when finish = '1';
-	
+	xres_id <= xhxRES & xxMAC & xEK when startresid='1'  else (others=>'0');
+	residf: SHA_896_256 
+		Port Map (	
+					clk			=>	clk,
+        			rst			=>	reset,
+        			start           =>  startresid,
+        			finish          =>  finresid,
+        			plaintext       =>	xres_id,
+        			hash_out	    =>	res_id_o
+    			);
+	finish    <=  finresid and finhnr and finreqid;	
 end;
