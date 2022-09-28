@@ -10,6 +10,7 @@ entity phase2 is
 		SUCI		:	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
 		req_id  	:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
 		IDSN		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R3   		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		HN_R		:	out std_logic_vector(WIDTH_IN-1 downto 0);
 		req_id_o	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		hxRES		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
@@ -194,11 +195,11 @@ Signal RSA_eko : std_logic_vector(2 downto 0) := (others=>'0');
 Signal RSA_ek  : std_logic_vector(2 downto 0) := (others=>'0');
 
 Signal abort,abort_req,finish,finrsa,fino,finkseaf,finxres,finxmac,finkeyh,finrsakseaf,finxresr1,finhxres : std_logic := '0';
-Signal finresid,startresid,finreqid,finhnr,finaeskseaf : std_logic := '0';
-
+Signal finresid,startresid,finreqid,finhnr,finaeskseaf: std_logic := '0';
+constant zero : unsigned(WIDTH_IN-1 downto 0) := (others => '0');
 Begin
 
-    R3_in <= X"5D93AABB6C171C362E00A8E8956E6F85" when start='1' else (others=>'0');
+    R3_in <= R3 when start='1' else (others=>'0');
     O_key <= x"E67FF540BA6F5C5B9FEFC68B395EC328" when start='1' else (others=>'0');
     KSEAF_key <= x"792F423F4528482B4D6251655468576D" when start='1' else (others=>'0');
     xRES_key <= x"7A25432A462D4A614E645267556A586E" when start='1' else (others=>'0');
@@ -349,7 +350,7 @@ Begin
 				clk		=>	clk,
 				remain  =>  RSA_ek,
 				fin     =>  finrsakseaf,
-				start   =>  start,
+				start   =>  finaeskseaf,
 				reset	=>	reset
 		);
 		

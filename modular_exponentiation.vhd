@@ -131,9 +131,8 @@ case state is
 	if((N_in = zero)) OR ((temp_M = M)  AND (temp_N = N_in)) then
 		state <= s0;
 	else
-		
-		temp_mod <= M;
-		state <= s1;
+		  temp_mod <= M;
+		  state <= s1;
 	end if;
 
 	-- If MSB of modulus is not 1 then shift it left until a 1 is found and count how many times it was shifted

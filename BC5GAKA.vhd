@@ -7,16 +7,17 @@ entity BC5GAKA is
 	generic (WIDTH_IN : integer := 128 
 	);
 	port(	
-		R1      	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
-		IDSN     	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
-        start       :   in std_logic;
+		R1       	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
+		R3       	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
+		IDSN    	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+        start       :   in  std_logic;
 		auth_suc	:	out std_logic;
 		req_fail	:	out std_logic;
 		res_fail	:	out std_logic;
 		mac_fail	:	out std_logic;
 		complete    :   out std_logic;
 		KSEAF_SUPI  :   out std_logic;
-		clk		    :	in  std_logic;
+		clk  	    :	in  std_logic;
 		reset		:	in  std_logic	
 	);
 end entity;
@@ -46,13 +47,11 @@ component phase1_1 is
 	);
 	port(	
 		R1   	 :	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		IDSN_in  :	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		SUCI_in	 :	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
-		SUCI_out :	out std_logic_vector(5*WIDTH_IN-1 downto 0);
-		IDSN 	 :	out std_logic_vector(WIDTH_IN-1 downto 0);
+		IDSN     :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		SUCI	 :	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
 		req_id   :	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		fin      :  out std_logic;
-        start   :   in std_logic;
+        start    :  in  std_logic;
 		clk	 	 :	in  std_logic;
 		reset	 :	in  std_logic		
 	);
@@ -67,8 +66,9 @@ component phase2 is
 		SUCI		:	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
 		req_id  	:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
 		IDSN		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R3   		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		HN_R		:	out std_logic_vector(WIDTH_IN-1 downto 0);
-		req_id_o	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
+		req_id_o	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);---
 		hxRES		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		xMAC		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		KSEAF		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
@@ -121,11 +121,50 @@ component phase4 is
 	);
 end component;
 
---Signal R1 	    : std_logic_vector(WIDTH_IN-1 downto 0) ;
---Signal IDSN 	: std_logic_vector(WIDTH_IN-1 downto 0) ;
+component DFF_128 is
+    Port ( D : in STD_LOGIC_VECTOR (127 downto 0);
+           SI  : in STD_LOGIC_VECTOR (127 downto 0);
+           clk : in STD_LOGIC;
+           rst : in STD_LOGIC;
+           SE  : in STD_LOGIC;
+            Q : out STD_LOGIC_VECTOR (127 downto 0));
+end component;
+component DFF_256 is
+    Port ( D : in STD_LOGIC_VECTOR (255 downto 0);
+           SI  : in STD_LOGIC_VECTOR (255 downto 0);
+           clk : in STD_LOGIC;
+           rst : in STD_LOGIC;
+           SE  : in STD_LOGIC;
+            Q : out STD_LOGIC_VECTOR (255 downto 0));
+end component;
+component DFF_384 is
+    Port ( D : in STD_LOGIC_VECTOR (383 downto 0);
+           SI  : in STD_LOGIC_VECTOR (383 downto 0);
+           clk : in STD_LOGIC;
+           rst : in STD_LOGIC;
+           SE  : in STD_LOGIC;
+            Q : out STD_LOGIC_VECTOR (383 downto 0));
+end component;
+component DFF_640 is
+    Port ( D : in STD_LOGIC_VECTOR (639 downto 0);
+           SI  : in STD_LOGIC_VECTOR (639 downto 0);
+           clk : in STD_LOGIC;
+           rst : in STD_LOGIC;
+           SE  : in STD_LOGIC;
+            Q : out STD_LOGIC_VECTOR (639 downto 0) );
+end component;
+component DFF_1 is
+    Port ( D : in STD_LOGIC;
+           SI  : in STD_LOGIC;
+           clk : in STD_LOGIC;
+           rst : in STD_LOGIC;
+           SE  : in STD_LOGIC;
+            Q : out STD_LOGIC);
+end component;
 
-Signal SUCI_UE 	: std_logic_vector(5*WIDTH_IN-1 downto 0) ;
 Signal SUPIp1 	: std_logic_vector(WIDTH_IN-1 downto 0) ;
+Signal SUCI_UE 	: std_logic_vector(5*WIDTH_IN-1 downto 0) ;
+Signal SUPI_UE 	: std_logic_vector(WIDTH_IN-1 downto 0) ;
 
 Signal IDSN_str : std_logic_vector(WIDTH_IN-1 downto 0);
 Signal SUCI_SN 	: std_logic_vector(5*WIDTH_IN-1 downto 0);
@@ -140,9 +179,9 @@ Signal req_id_HN: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 
 Signal Resx 	: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 
+Signal SUPIp4 : std_logic_vector(WIDTH_IN-1 downto 0) ;
 Signal KSEAFp4: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 Signal KSEAFp2: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
-Signal SUPIp4   : std_logic_vector(WIDTH_IN-1 downto 0) ;
 
 Signal remain3b : std_logic_vector(3 downto 0) := (others=>'0');
 Signal remain2b : std_logic_vector(2 downto 0) := (others=>'0');
@@ -150,14 +189,34 @@ Signal mac_abort: std_logic := '0';
 Signal res_abort: std_logic := '0';
 Signal req_abort: std_logic := '0';
 Signal auth: std_logic := '0';
+Signal rst: std_logic := '0';
+
+Signal R1_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal R1_fsm_p3: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal R3_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal IDSN_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  := (others=>'0');
+Signal IDSN_fsm_p3: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal SUCI_fsm_p2 	: std_logic_vector(5*WIDTH_IN-1 downto 0)   := (others=>'0');
+Signal req_id_fsm_p2: std_logic_vector(2*WIDTH_IN-1 downto 0)  := (others=>'0');
+Signal HN_Rx_fsm_p3	: std_logic_vector(WIDTH_IN-1 downto 0) ;
+Signal hxRESx_fsm_p4: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
+Signal xMACx_fsm_p3	: std_logic_vector(2*WIDTH_IN-1 downto 0)  ;
+Signal EK_fsm_p4	: std_logic_vector(3*WIDTH_IN-1 downto 0)  ;
+Signal remain3b_fsm_p2 : std_logic_vector(3 downto 0)  := (others=>'0');
+Signal remain2b_fsm_p4 : std_logic_vector(2 downto 0)  ;
+Signal SUPI_fsm_p2 	: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal SUPI_fsm_p3 	: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal KSEAF_fsm_p3: std_logic_vector(2*WIDTH_IN-1 downto 0)  ;
+Signal req_abort_fsm: std_logic := '0';
+
 Signal KSEAFSUPI,KSEAFSUPIl: std_logic := '0';
 Signal finph1,finph11,finph2,finph3,finph4: std_logic := '0';
+Signal scan: std_logic := '0';
 
-Signal req_fail_ila,mac_fail_ila,res_fail_ila,auth_ila,complete_ila: std_logic_vector(0 downto 0) := "0";
-Signal req_fail1,mac_fail1,res_fail1,auth1,complete1: std_logic_vector(0 downto 0) := "0";
-
+type top_module_fsm is (rst_all, idle, phase1_start, collect_data, reset_phase,reset1,reset2,reset3,reset4, phase2_start);
+signal current_state, next_state : top_module_fsm;
+Signal start_module : std_logic_vector(1 downto 0) := (others=>'0');
 begin
-	
 	SN_UE: phase1
 		generic map (WIDTH_IN => WIDTH_IN
 			)
@@ -165,81 +224,104 @@ begin
 				R1	=>	R1,
 				IDSN	=>	IDSN,
 				SUCI	=>	SUCI_UE,
-				SUPI    =>  SUPIp1,
+				SUPI    =>  SUPI_UE,
 				remain  =>  remain3b,
 				fin     =>  finph1,
-				start   =>  start,
+				start   =>  start_module(0),
 				clk	    =>	clk,
-				reset	=>	reset	
+				reset	=>	rst	
 			);			
-			
+	
 	UE_SN: phase1_1
 		generic map (WIDTH_IN => WIDTH_IN
 			)
 		port map(	
 		        R1      =>  R1,
-		        IDSN_in   =>  IDSN,
-				SUCI_in		=>	SUCI_UE,
-				SUCI_out	=>	SUCI_SN,	
-				IDSN	    =>	IDSN_str,		
+		        IDSN    =>  IDSN,
+				SUCI		=>	SUCI_UE,		
 				req_id	    =>	req_id_SN,	
 				start       =>  finph1,	
 				fin         =>  finph11,	
 				clk	        =>	clk,
-				reset	    =>	reset	
+				reset	    =>	rst	
 			);	
+	D1:DFF_128 port map ( D => R1, Q => R1_fsm_p2, SI => R1_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D2:DFF_128 port map ( D => SUPI_UE, Q => SUPI_fsm_p2, SI => SUPI_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D21:DFF_128 port map ( D => R3, Q => R3_fsm_p2, SI => R3_fsm_p2, SE => scan,  clk => clk, rst => reset);
 	
+	D3:DFF_640 port map ( D => SUCI_UE, Q => SUCI_fsm_p2, SI => SUCI_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D4:DFF_128 port map ( D => IDSN, Q => IDSN_fsm_p2, SI => IDSN_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D5:DFF_256 port map ( D => req_id_SN, Q => req_id_fsm_p2, SI => req_id_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D61:DFF_1 port map ( D => remain3b(0), Q => remain3b_fsm_p2(0), SI => remain3b_fsm_p2(0), SE => scan,  clk => clk, rst => reset);
+	D62:DFF_1 port map ( D => remain3b(1), Q => remain3b_fsm_p2(1), SI => remain3b_fsm_p2(1), SE => scan,  clk => clk, rst => reset);
+	D63:DFF_1 port map ( D => remain3b(2), Q => remain3b_fsm_p2(2), SI => remain3b_fsm_p2(2), SE => scan,  clk => clk, rst => reset);
+	D64:DFF_1 port map ( D => remain3b(3), Q => remain3b_fsm_p2(3), SI => remain3b_fsm_p2(3), SE => scan,  clk => clk, rst => reset);
+    
 	SN_HN: phase2 	
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
-				HN_R	=>	HN_Rx,
-				IDSN	=>	IDSN,		
+				IDSN	=>	IDSN_fsm_p2,	
+				req_id	=>	req_id_fsm_p2,	
+				SUCI	=>	SUCI_fsm_p2,   
+				remainuic => remain3b_fsm_p2,
+				HN_R	=>	HN_Rx,	
+				R3  	=>	R3_fsm_p2,	
 				hxRES	=>	hxRESx,
 				xMAC	=>	xMACx,
 				KSEAF   =>  KSEAFp2,
-				EK	=>	EK,
-				req_id	=>	req_id_SN,		
+				EK	=>	EK,	
 				req_id_o	=>	req_id_HN,
-				res_id	=>	res_id_HN,
-				SUCI	=>	SUCI_SN,   	
-				remainuic => remain3b,
+				res_id	=>	res_id_HN,	
 				remainek => remain2b,		
 				req_abort	=>	req_abort,
-				start   => finph11,
+				start   => start_module(1),
 				fin     => finph2,
 				clk	=>	clk,
-				reset	=>	reset	
+				reset	=>	rst	
 			);
+			
+	D7:DFF_128 port map ( D => IDSN_fsm_p2, Q => IDSN_fsm_p3, SI => IDSN_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D8:DFF_128 port map ( D => R1_fsm_p2, Q => R1_fsm_p3, SI => R1_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D9:DFF_256 port map ( D => xMACx, Q => xMACx_fsm_p3, SI => xMACx_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D10:DFF_128 port map ( D => HN_Rx, Q => HN_Rx_fsm_p3, SI => HN_Rx_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D11:DFF_1 port map ( D => req_abort, Q => req_abort_fsm, SI => req_abort_fsm, SE => scan,  clk => clk, rst => reset);
+	D12:DFF_384 port map ( D => EK, Q => EK_fsm_p4, SI => EK_fsm_p4, SE => scan,  clk => clk, rst => reset);
+	D13:DFF_256 port map ( D => hxRESx, Q => hxRESx_fsm_p4, SI => hxRESx_fsm_p4, SE => scan,  clk => clk, rst => reset);
+	D141:DFF_1 port map ( D => remain2b(0), Q => remain2b_fsm_p4(0), SI => remain2b_fsm_p4(0), SE => scan,  clk => clk, rst => reset);
+	D142:DFF_1 port map ( D => remain2b(1), Q => remain2b_fsm_p4(1), SI => remain2b_fsm_p4(1), SE => scan,  clk => clk, rst => reset);
+	D143:DFF_1 port map ( D => remain2b(2), Q => remain2b_fsm_p4(2), SI => remain2b_fsm_p4(2), SE => scan,  clk => clk, rst => reset);
+	D15:DFF_128 port map ( D => SUPI_fsm_p2, Q => SUPI_fsm_p3, SI => SUPI_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D16:DFF_256 port map ( D => KSEAFp2, Q => KSEAF_fsm_p3, SI => KSEAF_fsm_p3, SE => scan,  clk => clk, rst => reset);
 	
 	HN_UE: phase3
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
-		        R1      =>  R1,
-		        IDSN    =>  IDSN,
-				HN_R	=>	HN_Rx,
+		        R1      =>  R1_fsm_p3,
+		        IDSN    =>  IDSN_fsm_p3,
+				HN_R	=>	HN_Rx_fsm_p3,
+				xMAC	=>	xMACx_fsm_p3,
 				Res	=>	Resx,
-				xMAC	=>	xMACx,
 				mac_abort	=>	mac_abort,
-				start   => finph2,
+				start   => start_module(1),
 				fin     => finph3,
 				clk	=>	clk,
-				reset	=>	reset	 
+				reset	=>	rst	 
 			);
 	 UE2SN: phase4
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
-		        R1      =>  R1,
-		        EK      =>  EK,
-		        hxRes    =>  hxRESx,
+		        R1      =>  R1_fsm_p3,
+		        EK      =>  EK_fsm_p4, 
+		        hxRes    =>  hxRESx_fsm_p4,
 				Res	=>	Resx,
 				KSEAF	=>	KSEAFp4,
 				SUPI	=>	SUPIp4,
-				remain  => remain2b,
+				remain  => remain2b_fsm_p4,
 				abort     => res_abort,
 				start   => finph3,
 				fin     =>finph4,
 				clk	=>	clk,
-				reset	=>	reset	
+				reset	=>	rst	
 			);
 		
 	process(clk)
@@ -249,14 +331,70 @@ begin
 	               req_fail <= req_abort;
 	               res_fail <= res_abort;	
 	               auth_suc <= auth;
-	               complete <= finph4;
+	               complete <= scan;
 	               KSEAF_SUPI <= KSEAFSUPIl;
 	              
             end if;
      end process;
-    
-	auth <= '0' when ( mac_abort or req_abort or res_abort ) = '1' else '1';	
-	KSEAFSUPI <= '1' when (KSEAFp2 = KSEAFp4 and SUPIp1 = SUPIp4) else '0';
-	KSEAFSUPIl <= KSEAFSUPI when finph4='1' else '0';
+     
+	auth <= '0' when ( mac_abort or req_abort_fsm or res_abort ) = '1' else '1';	
+	KSEAFSUPI <= '1' when (KSEAF_fsm_p3 = KSEAFp4 and SUPI_fsm_p3 = SUPIp4) else '0';
+	KSEAFSUPIl <= KSEAFSUPI when scan='1' else '0';
+	
+	--current state logic
+    process(clk, reset)
+    begin
+        if(reset='1') then
+            current_state <= rst_all;
+        elsif(clk'event and clk='1') then
+            current_state <= next_state;
+        end if;
+    end process;
+	--phase1_start, collect_data, reset_phase, phase2_start, 
+	--next state logic
+    process(current_state, reset, start, finph11, finph2)
+    begin
+        case current_state is
+            when rst_all =>
+                rst <= '1'; scan<='0'; start_module<= "00";  
+                if(reset='1') then
+                    next_state <= rst_all;
+                else 
+                    next_state <= idle;
+                end if;
+            when idle =>
+                rst <= '0'; scan<='0'; start_module<= "00";  
+                if(start='1') then
+                    next_state <= phase1_start;
+                else
+                    next_state <= idle;
+                end if;
+            when phase1_start =>
+                start_module<= "01"; rst <= '0'; scan<='0';  
+                if (finph11='1') then
+                    next_state <= collect_data;
+                else
+                    next_state <= phase1_start;
+                end if;
+            when collect_data =>  
+                rst <= '0'; scan<='1'; start_module<= "00"; 
+                next_state <= reset_phase;
+            when reset_phase =>
+                scan<='0'; rst <= '0'; start_module<= "00"; 
+                next_state <= reset1;
+            when reset1 =>  next_state <= reset2; rst <= '1';scan<='0';  start_module<= "00"; 
+            when reset2 =>  next_state <= reset3; rst <= '1';scan<='0';  start_module<= "00"; 
+            when reset3 =>  next_state <= reset4; rst <= '1';scan<='0';  start_module<= "00"; 
+            when reset4 =>  next_state <= phase2_start; rst <= '0'; scan<='0'; start_module<= "00";  
+            when phase2_start =>
+                scan<='0'; rst <= '0'; start_module<= "11"; 
+                if (finph2 ='1') then
+                    next_state <= collect_data;
+                else
+                    next_state <= phase2_start;
+                end if;
+            when others =>                               
+        end case;
+    end process;
 	
 end;

@@ -8,10 +8,8 @@ entity phase1_1 is
 	);
 	port(	
 		R1   	 :	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		IDSN_in  :	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		SUCI_in	 :	in std_logic_vector(5*WIDTH_IN-1 downto 0);
-		SUCI_out :	out std_logic_vector(5*WIDTH_IN-1 downto 0);
-		IDSN 	 :	out std_logic_vector(WIDTH_IN-1 downto 0);
+		IDSN     :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		SUCI     :	in std_logic_vector(5*WIDTH_IN-1 downto 0);
 		req_id   :	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		fin      :  out std_logic;
 		start    :  in  std_logic;
@@ -43,23 +41,21 @@ Signal SHA256_out : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
 Signal SHA256_O : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
 
 Signal IDSNv : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
-Signal IDHN : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
-Signal fin256: std_logic := '0';
+Signal IDHN : std_logic_vector(WIDTH_IN-1 downto 0) := X"F98EFF888A33642B100F3CB38F216AAA";
+Signal fin256,finished,start_sha: std_logic := '0';
+
 
 Begin
-	IDHN   <=  X"F98EFF888A33642B100F3CB38F216AAA";
     process(clk)
     begin
         if (clk'event and clk='1') then
               req_id <= SHA256_O;
-	          SUCI_out <= SUCI_in;
-	          IDSN <= IDSN_in;
 	          fin <= fin256;
         end if;
     end process;
 
-	MSG1024 <=  IDHN & R1 & IDSN_in & SUCI_in when start<='1' else (others=>'0');
-	SHA256_O  <=  SHA256_out when fin256='1' else (others=>'0');
+	MSG1024 <=  IDHN & R1 & IDSN & SUCI when start<='1' else (others=>'0');
+	SHA256_O  <=  SHA256_out when fin256<='1' else (others=>'0');
 	req_id_sha: SHA_1024_256
     		PORT MAP(	
 					clk			=>	clk,
@@ -69,5 +65,4 @@ Begin
         			plaintext       =>	MSG1024,
         			hash_out        =>	SHA256_out
     			);
-  	
 end;

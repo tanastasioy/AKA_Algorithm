@@ -80,10 +80,10 @@ architecture behavioral of aes_dec is
     signal current_round : integer range 0 to rounds;
 
     -- Indicates when entire operation (encryption or decryption) is complete.
-    signal finished : std_logic := '0';
+    signal finished,completed : std_logic := '0';
     
     -- Keep track of state throughout operations and rounds.
-    signal round_result : std_logic_vector(127 downto 0);
+    signal round_result,end_result : std_logic_vector(127 downto 0);
     
     -- Signals for AddRoundKey operation.
     signal add_round_key_state, add_round_key_key, add_round_key_result : std_logic_vector(127 downto 0);
@@ -167,14 +167,16 @@ begin
             end if;
         end if;
     end process generate_round_keys;
-    output <= round_result when current_state_top=done else (others=>'0');
-    complete <= finished when current_state_top=done else '0';
+    output <= end_result;
+    complete <= completed;
     round_counter : process(clk, rst)
     begin
         if rising_edge(clk) then
                 case current_state_top is
                     when reset => 
                         current_round <= 0;
+                        end_result <= (others =>'0');
+                        completed <= '0';
                     when idle =>
                         current_round <= 10;
                     when decrypt =>
@@ -182,6 +184,8 @@ begin
                             current_round <= current_round - 1;
                         end if;                        
                     when done =>
+                        end_result <= add_round_key_result;
+                        completed <= '1';
                     when others =>
                 end case;
         end if;
