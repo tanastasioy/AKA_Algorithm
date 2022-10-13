@@ -8,10 +8,10 @@ entity phase1 is
 	);
 	port(	
 		R1   	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R2      :	in  std_logic_vector(WIDTH_IN-1 downto 0);    
 		IDSN 	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		SUCI 	:	out std_logic_vector(5*WIDTH_IN-1 downto 0);
 		SUPI 	:	out std_logic_vector(WIDTH_IN-1 downto 0);
-		remain 	:	out std_logic_vector(3 downto 0);
 		fin     :   out std_logic;
         start   :   in std_logic;
 		clk 	:	in  std_logic;
@@ -45,10 +45,7 @@ Signal N_in1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal N_in2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal N_in3 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal RSA_c : std_logic_vector(3 downto 0) := (others=>'0');
-
 Signal RSA512 : std_logic_vector(4*WIDTH_IN-1 downto 0) := (others=>'0');
-Signal R2 : std_logic_vector(WIDTH_IN-1 downto 0) := X"41FFAABB002838035C01500FEADFD555";
 Signal IDHN : std_logic_vector(WIDTH_IN-1 downto 0) := X"F98EFF888A33642B100F3CB38F216AAA";
 Signal SUPI_STR : std_logic_vector(WIDTH_IN-1 downto 0) := X"4897AC0667E5CBD185CD03C5AE862E27";
 Signal SUCI_out 	: std_logic_vector(5*WIDTH_IN-1 downto 0) := (others=>'0');
@@ -61,15 +58,12 @@ begin
         N_in1 <= "0" & R1(WIDTH_IN-2 downto 0)   when start<='1' else (others=>'0');
         N_in2 <= "0" & R2(WIDTH_IN-2 downto 0)   when start<='1' else (others=>'0');
         N_in3 <= "0" & IDSN(WIDTH_IN-2 downto 0) when start<='1' else (others=>'0');
-        
-        RSA_c <= SUPI_STR(127) & R1(127) & R2(127) & IDSN(127) when finish='1' else (others=>'0');
-        
+       
         process(clk,reset)
         begin
             if (clk'event and clk='1') then                
                 SUCI <= SUCI_out;
                 fin <= finish;
-                remain <= RSA_c;
             end if;
         end process;
     
@@ -121,7 +115,7 @@ begin
 					C		=>	C_out3
 				);
 	   finish <= f1 and f2 and f3 and f4;
-	   RSA512 <= C_out0&C_out1&C_out2&C_out3;
-	   SUCI_out <= 	IDHN & RSA512 when finish='1' else (others=>'0');	
+	   RSA512 <= SUPI_STR(127)&C_out0(126 downto 0) & R1(127)&C_out1(126 downto 0) & R2(127)&C_out2(126 downto 0) & IDSN(127)&C_out3(126 downto 0);
+	   SUCI_out <=  RSA512 & IDHN when finish='1' else (others=>'0');	
 	   SUPI <= SUPI_STR when finish='1' else (others=>'0');	
 end architecture;

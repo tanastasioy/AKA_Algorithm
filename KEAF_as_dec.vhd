@@ -8,7 +8,6 @@ entity RSA_KEAF_dec is
 	port(	
 		EK   	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
 		EK_AES	:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
-		remain  :	in std_logic_vector(2 downto 0);
 		clk	    :	in std_logic;
 		fin     :   out std_logic;
 		start   :   in std_logic;
@@ -51,9 +50,9 @@ Signal f1,f2,f3,f4,finish: std_logic := '0';
 
 begin
 
-        EK_rsa0	 <=	EK(WIDTH_IN-1 downto 0);
-        EK_rsa1	 <=	EK(2*WIDTH_IN-1 downto WIDTH_IN);
-        EK_rsa2	 <=	EK(3*WIDTH_IN-1 downto 2*WIDTH_IN);
+        EK_rsa0	 <=	"0" & EK(WIDTH_IN-2 downto 0);
+        EK_rsa1	 <=	"0" & EK(2*WIDTH_IN-2 downto WIDTH_IN);
+        EK_rsa2	 <=	"0" & EK(3*WIDTH_IN-2 downto 2*WIDTH_IN);
 	
 	dut0: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
@@ -65,7 +64,7 @@ begin
 					finish  =>  f1,
 					C	=>	C_out0 --EK0
 				);
-    EK0 <= remain(0) & C_out0(126 downto 0);    
+    EK0 <= EK(WIDTH_IN-1) & C_out0(126 downto 0);    
 	dut1: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
 			PORT MAP(	N	=> 	unsigned(EK_rsa1),
@@ -76,7 +75,7 @@ begin
 					finish  =>  f2,
 					C	=>	C_out1 --EK1
 				);
-    EK1 <= remain(1) & C_out1(126 downto 0);    
+    EK1 <= EK(2*WIDTH_IN-1) & C_out1(126 downto 0);    
 	dut2: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
 			PORT MAP(	N	=> 	unsigned(EK_rsa2),
@@ -87,7 +86,7 @@ begin
 					finish  =>  f3,
 					C	=>	 C_out2 --EK2
 				);
-    EK2 <= remain(2) & C_out2(126 downto 0);    
+    EK2 <= EK(3*WIDTH_IN-1) & C_out2(126 downto 0);    
 				
 	   finish <= f1 and f2 and f3;
 	   process(clk)

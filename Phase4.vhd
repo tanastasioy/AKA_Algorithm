@@ -12,7 +12,6 @@ entity phase4 is
 		Res   	:	in std_logic_vector(2*WIDTH_IN-1 downto 0);
 		KSEAF  	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		SUPI	:	out std_logic_vector(WIDTH_IN-1 downto 0);		
-		remain  :	in std_logic_vector(2 downto 0);
 		clk	    :	in std_logic;
 		fin     :   out std_logic;
 		start   :   in std_logic;
@@ -29,7 +28,6 @@ component RSA_KEAF_dec is
 	port(	
 		EK   	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
 		EK_AES	:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
-		remain  :	in std_logic_vector(2 downto 0);
 		clk	    :	in std_logic;
 		fin     :   out std_logic;
 		start   :   in  std_logic;
@@ -89,7 +87,6 @@ begin
 		generic map(WIDTH_IN => WIDTH_IN)
 		port map(	EK_AES		=>	EK_AES,
 				EK		=>	EK_in,
-				remain  =>  remain,
 				clk		=>	clk,
 				fin     =>  finrsakseaf,
 				start   =>  start,

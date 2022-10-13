@@ -1,3 +1,8 @@
+-- Entity name: montgomery_multiplier
+-- Author: Stephen Carter
+-- Contact: stephen.carter@mail.mcgill.ca
+-- Date: March 10th, 2016
+-- Description: Performs modular multiplication. See paper for more information. Designed for use with RSA Encryption. 
 library ieee;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;

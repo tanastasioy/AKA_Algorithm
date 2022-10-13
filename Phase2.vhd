@@ -10,7 +10,7 @@ entity phase2 is
 		SUCI		:	in  std_logic_vector(5*WIDTH_IN-1 downto 0);
 		req_id  	:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
 		IDSN		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
-		R3   		:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R3   		:	in  std_logic_vector(WIDTH_IN-1 downto 0);  
 		HN_R		:	out std_logic_vector(WIDTH_IN-1 downto 0);
 		req_id_o	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		hxRES		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
@@ -18,8 +18,6 @@ entity phase2 is
 		KSEAF		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		EK			:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
 		res_id		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
-		remainuic   :	in  std_logic_vector(3 downto 0);
-		remainek    :	out std_logic_vector(2 downto 0);
 		fin         :   out std_logic;
 		start       :   in  std_logic;
 		req_abort	:	out std_logic;
@@ -42,7 +40,6 @@ component RSA_Dec_UIc is
 		R2	:	out std_logic_vector(WIDTH_IN-1 downto 0);
 		IDSN	:	out std_logic_vector(WIDTH_IN-1 downto 0);
 		SUPI	:	out std_logic_vector(WIDTH_IN-1 downto 0);
-		remain 	:	in  std_logic_vector(3 downto 0);
 		fin     :   out std_logic;
 		start   :   in  std_logic;
 		clk	    :	in  std_logic;
@@ -113,8 +110,7 @@ component RSA_KSEAF is
 	);
 	port(	
 		EK_AES	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
-		EK	    :	out std_logic_vector(3*WIDTH_IN-1 downto 0);		
-		remain 	:	out std_logic_vector(2 downto 0);
+		EK	    :	out std_logic_vector(3*WIDTH_IN-1 downto 0);	
 		fin     :   out std_logic;
 		clk	    :	in std_logic;
 		start   :   in std_logic;
@@ -191,12 +187,9 @@ Signal KSEAF_key: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal xRES_key : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal xMAC_key : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal RSA_eko : std_logic_vector(2 downto 0) := (others=>'0');
-Signal RSA_ek  : std_logic_vector(2 downto 0) := (others=>'0');
-
 Signal abort,abort_req,finish,finrsa,fino,finkseaf,finxres,finxmac,finkeyh,finrsakseaf,finxresr1,finhxres : std_logic := '0';
 Signal finresid,startresid,finreqid,finhnr,finaeskseaf: std_logic := '0';
-constant zero : unsigned(WIDTH_IN-1 downto 0) := (others => '0');
+
 Begin
 
     R3_in <= R3 when start='1' else (others=>'0');
@@ -213,7 +206,6 @@ Begin
 	xEK_O     <= xEK      when finish='1' else (others=>'0');
 	KSEAFo     <= KSEAFv  when finish='1' else (others=>'0');
 	abort_req <= abort    when finish='1' else '1';
-	RSA_eko   <= RSA_ek   when finish='1' else (others=>'0');
     
 	process(clk)
     begin
@@ -226,13 +218,12 @@ Begin
 	           KSEAF    <= KSEAFo;
 	           req_abort<= abort_req;
 	           req_id_o <= req_id_ou;
-	           remainek <= RSA_eko;
 	           fin <= finish; 
         end if;
     end process;
     
-	IDHN_in	 <=	SUCI(5*WIDTH_IN-1 downto 4*WIDTH_IN) when start='1' else (others=>'0');
-	UIc_in	 <=	SUCI(4*WIDTH_IN-1 downto 0) when start='1' else (others=>'0');
+	IDHN_in	 <=	SUCI(WIDTH_IN-1 downto 0) when start='1' else (others=>'0');
+	UIc_in	 <=	SUCI(5*WIDTH_IN-1 downto WIDTH_IN) when start='1' else (others=>'0');
 
 	RSA_Dec: RSA_Dec_UIc 
 		generic map (WIDTH_IN => WIDTH_IN)
@@ -242,7 +233,6 @@ Begin
 				R2	=>	R2_in,
 				IDSN	=>	IDSN_in,
 				SUPI	=>	SUPI_in,
-				remain  =>  remainuic,
 				fin     =>  finrsa,
 				start   =>  start,
 				clk	    =>	clk,
@@ -348,7 +338,6 @@ Begin
 		port map(	EK_AES		=>	EK_in,
 				EK		=>	xEK,
 				clk		=>	clk,
-				remain  =>  RSA_ek,
 				fin     =>  finrsakseaf,
 				start   =>  finaeskseaf,
 				reset	=>	reset

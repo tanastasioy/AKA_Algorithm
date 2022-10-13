@@ -9,7 +9,6 @@ entity RSA_KSEAF is
 	port(	
 		EK_AES	:	in std_logic_vector(3*WIDTH_IN-1 downto 0);
 		EK	:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
-		remain 	:	out std_logic_vector(2 downto 0);
 		clk	:	in std_logic;
 		fin :   out std_logic;
 		start :   in std_logic;
@@ -39,8 +38,6 @@ Signal EKa : std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
 Signal EK_rsa0 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal EK_rsa1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal EK_rsa2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
-Signal RSA_c : std_logic_vector(2 downto 0) := (others=>'0');
-
 Signal EK0 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal EK1 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal EK2 : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
@@ -54,7 +51,6 @@ begin
     EK_rsa0	 <=	"0" & EK_AES(WIDTH_IN-2 downto 0);
 	EK_rsa1	 <=	"0" & EK_AES(2*WIDTH_IN-2 downto WIDTH_IN);
 	EK_rsa2	 <=	"0" & EK_AES(3*WIDTH_IN-2 downto 2*WIDTH_IN);
-	RSA_c <=  EK_AES(3*WIDTH_IN-1) & EK_AES(2*WIDTH_IN-1) & EK_AES(WIDTH_IN-1) when finish='1' else (others=>'0');
 	
 	dut0: modular_exponentiation 
 			generic map(WIDTH_IN => WIDTH_IN)
@@ -94,8 +90,7 @@ begin
             if (clk'event and clk='1') then
                   EK <= EKa;
                   fin <= finish;
-                  remain <= RSA_c;
             end if;
         end process;
-	EKa <= EK2 & EK1 & EK0 when finish ='1' else (others=>'0');
+	EKa <= EK_AES(3*WIDTH_IN-1)&EK2(126 downto 0) & EK_AES(2*WIDTH_IN-1)&EK1(126 downto 0) & EK_AES(WIDTH_IN-1)&EK0(126 downto 0) when finish ='1' else (others=>'0');
 end;

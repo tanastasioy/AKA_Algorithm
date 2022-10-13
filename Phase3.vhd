@@ -8,6 +8,7 @@ entity phase3 is
 	);
 	port(	
 		R1   	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R2   	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		IDSN 	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		Res			:	out std_logic_vector(2*WIDTH_IN-1 downto 0);  
 		xMAC		:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
@@ -49,7 +50,6 @@ component HMACSHA256 is
 	);
 end component;
 
-Signal R2_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal R3_in 	: std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal O_in 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
 Signal Mer512 	: std_logic_vector(3*WIDTH_IN-1 downto 0) := (others=>'0');
@@ -68,7 +68,6 @@ Signal mac_abort_o,abort_mac,finish,starti,fino,finkseaf,finxmac,finxres,finaesd
 
 Begin
     
-    R2_in <= X"41FFAABB002838035C01500FEADFD555";
     O_key <= x"E67FF540BA6F5C5B9FEFC68B395EC328";
     KSEAF_key <= x"792F423F4528482B4D6251655468576D";
     xRES_key <= x"7A25432A462D4A614E645267556A586E";
@@ -90,14 +89,14 @@ Begin
 				rst			=>	reset,
 				enable      =>  start,
 				complete    => finaesdec,
-				key 		=>	R2_in,
+				key 		=>	R2,
 				input	    =>	HN_R,
 				output	    =>	R3_inv
 		);
 		
 	R3_in <= R3_inv; 
 	
-	O_in <= R1 & R2_in & R3_in  when finaesdec='1'  else (others=>'0');
+	O_in <= R1 & R2 & R3_in  when finaesdec='1'  else (others=>'0');
 	
 	O_init: HMACSHA256
 	   port map(

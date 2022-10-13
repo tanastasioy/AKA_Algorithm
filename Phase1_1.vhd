@@ -40,7 +40,6 @@ Signal MSG1024 : std_logic_vector(8*WIDTH_IN-1 downto 0) := (others=>'0');
 Signal SHA256_out : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
 Signal SHA256_O : std_logic_vector(2*WIDTH_IN-1 downto 0) := (others=>'0');
 
-Signal IDSNv : std_logic_vector(WIDTH_IN-1 downto 0) := (others=>'0');
 Signal IDHN : std_logic_vector(WIDTH_IN-1 downto 0) := X"F98EFF888A33642B100F3CB38F216AAA";
 Signal fin256,finished,start_sha: std_logic := '0';
 
@@ -54,7 +53,7 @@ Begin
         end if;
     end process;
 
-	MSG1024 <=  IDHN & R1 & IDSN & SUCI when start<='1' else (others=>'0');
+	MSG1024 <=  SUCI(WIDTH_IN-1 downto 0) & R1 & IDSN & SUCI when start<='1' else (others=>'0');
 	SHA256_O  <=  SHA256_out when fin256<='1' else (others=>'0');
 	req_id_sha: SHA_1024_256
     		PORT MAP(	

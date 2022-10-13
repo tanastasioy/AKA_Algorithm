@@ -8,6 +8,7 @@ entity BC5GAKA is
 	);
 	port(	
 		R1       	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
+		R2       	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
 		R3       	:	in  std_logic_vector(WIDTH_IN-1 downto 0);    
 		IDSN    	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
         start       :   in  std_logic;
@@ -30,10 +31,10 @@ component phase1 is
 	);
 	port(	
 		R1  	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R2      :	in  std_logic_vector(WIDTH_IN-1 downto 0);    
 		IDSN	:	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		SUCI	:	out std_logic_vector(5*WIDTH_IN-1 downto 0);
 		SUPI 	:	out std_logic_vector(WIDTH_IN-1 downto 0);
-		remain 	:	out std_logic_vector(3 downto 0);
 		fin     :   out std_logic;
         start   :   in std_logic;
 		clk 	:	in std_logic;
@@ -74,8 +75,6 @@ component phase2 is
 		KSEAF		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		EK			:	out std_logic_vector(3*WIDTH_IN-1 downto 0);
 		res_id		:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
-		remainuic   :	in  std_logic_vector(3 downto 0);
-		remainek    :	out std_logic_vector(2 downto 0);
 		fin         :   out std_logic;
 		start       :   in  std_logic;
 		req_abort	:	out std_logic;
@@ -90,6 +89,7 @@ component phase3 is
 	);
 	port(	
 		R1   	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);
+		R2   	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);   
 		IDSN 	    :	in  std_logic_vector(WIDTH_IN-1 downto 0);
 		Res			:	out std_logic_vector(2*WIDTH_IN-1 downto 0);  
 		xMAC		:	in  std_logic_vector(2*WIDTH_IN-1 downto 0);
@@ -112,7 +112,6 @@ component phase4 is
 		Res   	:	in std_logic_vector(2*WIDTH_IN-1 downto 0);
 		KSEAF  	:	out std_logic_vector(2*WIDTH_IN-1 downto 0);
 		SUPI	:	out std_logic_vector(WIDTH_IN-1 downto 0);
-		remain  :	in std_logic_vector(2 downto 0);
 		clk	    :	in std_logic;
 		abort   :   out std_logic;
 		start   :   in std_logic;
@@ -162,12 +161,8 @@ component DFF_1 is
             Q : out STD_LOGIC);
 end component;
 
-Signal SUPIp1 	: std_logic_vector(WIDTH_IN-1 downto 0) ;
 Signal SUCI_UE 	: std_logic_vector(5*WIDTH_IN-1 downto 0) ;
 Signal SUPI_UE 	: std_logic_vector(WIDTH_IN-1 downto 0) ;
-
-Signal IDSN_str : std_logic_vector(WIDTH_IN-1 downto 0);
-Signal SUCI_SN 	: std_logic_vector(5*WIDTH_IN-1 downto 0);
 Signal req_id_SN: std_logic_vector(2*WIDTH_IN-1 downto 0);
 
 Signal HN_Rx	: std_logic_vector(WIDTH_IN-1 downto 0);
@@ -183,8 +178,6 @@ Signal SUPIp4 : std_logic_vector(WIDTH_IN-1 downto 0) ;
 Signal KSEAFp4: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 Signal KSEAFp2: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 
-Signal remain3b : std_logic_vector(3 downto 0) := (others=>'0');
-Signal remain2b : std_logic_vector(2 downto 0) := (others=>'0');
 Signal mac_abort: std_logic := '0';
 Signal res_abort: std_logic := '0';
 Signal req_abort: std_logic := '0';
@@ -193,6 +186,8 @@ Signal rst: std_logic := '0';
 
 Signal R1_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  ;
 Signal R1_fsm_p3: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal R2_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  ;
+Signal R2_fsm_p3: std_logic_vector(WIDTH_IN-1 downto 0)  ;
 Signal R3_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  ;
 Signal IDSN_fsm_p2: std_logic_vector(WIDTH_IN-1 downto 0)  := (others=>'0');
 Signal IDSN_fsm_p3: std_logic_vector(WIDTH_IN-1 downto 0)  ;
@@ -202,8 +197,6 @@ Signal HN_Rx_fsm_p3	: std_logic_vector(WIDTH_IN-1 downto 0) ;
 Signal hxRESx_fsm_p4: std_logic_vector(2*WIDTH_IN-1 downto 0) ;
 Signal xMACx_fsm_p3	: std_logic_vector(2*WIDTH_IN-1 downto 0)  ;
 Signal EK_fsm_p4	: std_logic_vector(3*WIDTH_IN-1 downto 0)  ;
-Signal remain3b_fsm_p2 : std_logic_vector(3 downto 0)  := (others=>'0');
-Signal remain2b_fsm_p4 : std_logic_vector(2 downto 0)  ;
 Signal SUPI_fsm_p2 	: std_logic_vector(WIDTH_IN-1 downto 0)  ;
 Signal SUPI_fsm_p3 	: std_logic_vector(WIDTH_IN-1 downto 0)  ;
 Signal KSEAF_fsm_p3: std_logic_vector(2*WIDTH_IN-1 downto 0)  ;
@@ -222,10 +215,10 @@ begin
 			)
 		port map(	
 				R1	=>	R1,
+				R2	=>	R2,
 				IDSN	=>	IDSN,
 				SUCI	=>	SUCI_UE,
 				SUPI    =>  SUPI_UE,
-				remain  =>  remain3b,
 				fin     =>  finph1,
 				start   =>  start_module(0),
 				clk	    =>	clk,
@@ -245,25 +238,21 @@ begin
 				clk	        =>	clk,
 				reset	    =>	rst	
 			);	
-	D1:DFF_128 port map ( D => R1, Q => R1_fsm_p2, SI => R1_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D0:DFF_128 port map ( D => R1, Q => R1_fsm_p2, SI => R1_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D1:DFF_128 port map( D => R2, Q => R2_fsm_p2, SI => R2_fsm_p2, SE => scan,  clk => clk, rst => reset);
 	D2:DFF_128 port map ( D => SUPI_UE, Q => SUPI_fsm_p2, SI => SUPI_fsm_p2, SE => scan,  clk => clk, rst => reset);
-	D21:DFF_128 port map ( D => R3, Q => R3_fsm_p2, SI => R3_fsm_p2, SE => scan,  clk => clk, rst => reset);
+	D21:DFF_128 port map( D => R3, Q => R3_fsm_p2, SI => R3_fsm_p2, SE => scan,  clk => clk, rst => reset);
 	
 	D3:DFF_640 port map ( D => SUCI_UE, Q => SUCI_fsm_p2, SI => SUCI_fsm_p2, SE => scan,  clk => clk, rst => reset);
 	D4:DFF_128 port map ( D => IDSN, Q => IDSN_fsm_p2, SI => IDSN_fsm_p2, SE => scan,  clk => clk, rst => reset);
 	D5:DFF_256 port map ( D => req_id_SN, Q => req_id_fsm_p2, SI => req_id_fsm_p2, SE => scan,  clk => clk, rst => reset);
-	D61:DFF_1 port map ( D => remain3b(0), Q => remain3b_fsm_p2(0), SI => remain3b_fsm_p2(0), SE => scan,  clk => clk, rst => reset);
-	D62:DFF_1 port map ( D => remain3b(1), Q => remain3b_fsm_p2(1), SI => remain3b_fsm_p2(1), SE => scan,  clk => clk, rst => reset);
-	D63:DFF_1 port map ( D => remain3b(2), Q => remain3b_fsm_p2(2), SI => remain3b_fsm_p2(2), SE => scan,  clk => clk, rst => reset);
-	D64:DFF_1 port map ( D => remain3b(3), Q => remain3b_fsm_p2(3), SI => remain3b_fsm_p2(3), SE => scan,  clk => clk, rst => reset);
-    
+	   
 	SN_HN: phase2 	
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
 				IDSN	=>	IDSN_fsm_p2,	
 				req_id	=>	req_id_fsm_p2,	
 				SUCI	=>	SUCI_fsm_p2,   
-				remainuic => remain3b_fsm_p2,
 				HN_R	=>	HN_Rx,	
 				R3  	=>	R3_fsm_p2,	
 				hxRES	=>	hxRESx,
@@ -272,7 +261,6 @@ begin
 				EK	=>	EK,	
 				req_id_o	=>	req_id_HN,
 				res_id	=>	res_id_HN,	
-				remainek => remain2b,		
 				req_abort	=>	req_abort,
 				start   => start_module(1),
 				fin     => finph2,
@@ -282,21 +270,20 @@ begin
 			
 	D7:DFF_128 port map ( D => IDSN_fsm_p2, Q => IDSN_fsm_p3, SI => IDSN_fsm_p3, SE => scan,  clk => clk, rst => reset);
 	D8:DFF_128 port map ( D => R1_fsm_p2, Q => R1_fsm_p3, SI => R1_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D81:DFF_128 port map( D => R2_fsm_p2, Q => R2_fsm_p3, SI => R2_fsm_p3, SE => scan,  clk => clk, rst => reset);
 	D9:DFF_256 port map ( D => xMACx, Q => xMACx_fsm_p3, SI => xMACx_fsm_p3, SE => scan,  clk => clk, rst => reset);
-	D10:DFF_128 port map ( D => HN_Rx, Q => HN_Rx_fsm_p3, SI => HN_Rx_fsm_p3, SE => scan,  clk => clk, rst => reset);
-	D11:DFF_1 port map ( D => req_abort, Q => req_abort_fsm, SI => req_abort_fsm, SE => scan,  clk => clk, rst => reset);
-	D12:DFF_384 port map ( D => EK, Q => EK_fsm_p4, SI => EK_fsm_p4, SE => scan,  clk => clk, rst => reset);
-	D13:DFF_256 port map ( D => hxRESx, Q => hxRESx_fsm_p4, SI => hxRESx_fsm_p4, SE => scan,  clk => clk, rst => reset);
-	D141:DFF_1 port map ( D => remain2b(0), Q => remain2b_fsm_p4(0), SI => remain2b_fsm_p4(0), SE => scan,  clk => clk, rst => reset);
-	D142:DFF_1 port map ( D => remain2b(1), Q => remain2b_fsm_p4(1), SI => remain2b_fsm_p4(1), SE => scan,  clk => clk, rst => reset);
-	D143:DFF_1 port map ( D => remain2b(2), Q => remain2b_fsm_p4(2), SI => remain2b_fsm_p4(2), SE => scan,  clk => clk, rst => reset);
-	D15:DFF_128 port map ( D => SUPI_fsm_p2, Q => SUPI_fsm_p3, SI => SUPI_fsm_p3, SE => scan,  clk => clk, rst => reset);
-	D16:DFF_256 port map ( D => KSEAFp2, Q => KSEAF_fsm_p3, SI => KSEAF_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D10:DFF_128 port map( D => HN_Rx, Q => HN_Rx_fsm_p3, SI => HN_Rx_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D11:DFF_1 port map  ( D => req_abort, Q => req_abort_fsm, SI => req_abort_fsm, SE => scan,  clk => clk, rst => reset);
+	D12:DFF_384 port map( D => EK, Q => EK_fsm_p4, SI => EK_fsm_p4, SE => scan,  clk => clk, rst => reset);
+	D13:DFF_256 port map( D => hxRESx, Q => hxRESx_fsm_p4, SI => hxRESx_fsm_p4, SE => scan,  clk => clk, rst => reset);
+	D15:DFF_128 port map( D => SUPI_fsm_p2, Q => SUPI_fsm_p3, SI => SUPI_fsm_p3, SE => scan,  clk => clk, rst => reset);
+	D16:DFF_256 port map( D => KSEAFp2, Q => KSEAF_fsm_p3, SI => KSEAF_fsm_p3, SE => scan,  clk => clk, rst => reset);
 	
 	HN_UE: phase3
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
 		        R1      =>  R1_fsm_p3,
+		        R2      =>  R2_fsm_p3,
 		        IDSN    =>  IDSN_fsm_p3,
 				HN_R	=>	HN_Rx_fsm_p3,
 				xMAC	=>	xMACx_fsm_p3,
@@ -316,7 +303,6 @@ begin
 				Res	=>	Resx,
 				KSEAF	=>	KSEAFp4,
 				SUPI	=>	SUPIp4,
-				remain  => remain2b_fsm_p4,
 				abort     => res_abort,
 				start   => finph3,
 				fin     =>finph4,
