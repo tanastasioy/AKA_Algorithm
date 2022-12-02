@@ -206,7 +206,7 @@ Signal KSEAFSUPI,KSEAFSUPIl: std_logic := '0';
 Signal finph1,finph11,finph2,finph3,finph4: std_logic := '0';
 Signal scan: std_logic := '0';
 
-type top_module_fsm is (rst_all, idle, phase1_start, collect_data, reset_phase,reset1,reset2,reset3,reset4, phase2_start);
+type top_module_fsm is (rst_all, idle, phase1_start, collect_data, reset_phase, phase2_start);
 signal current_state, next_state : top_module_fsm;
 Signal start_module : std_logic_vector(1 downto 0) := (others=>'0');
 begin
@@ -294,7 +294,7 @@ begin
 				clk	=>	clk,
 				reset	=>	rst	 
 			);
-	 UE2SN: phase4
+	UE2SN: phase4
 		generic map (WIDTH_IN => WIDTH_IN)
 		port map(	
 		        R1      =>  R1_fsm_p3,
@@ -321,7 +321,7 @@ begin
 	               KSEAF_SUPI <= KSEAFSUPIl;
 	              
             end if;
-     end process;
+    end process;
      
 	auth <= '0' when ( mac_abort or req_abort_fsm or res_abort ) = '1' else '1';	
 	KSEAFSUPI <= '1' when (KSEAF_fsm_p3 = KSEAFp4 and SUPI_fsm_p3 = SUPIp4) else '0';
@@ -366,12 +366,8 @@ begin
                 rst <= '0'; scan<='1'; start_module<= "00"; 
                 next_state <= reset_phase;
             when reset_phase =>
-                scan<='0'; rst <= '0'; start_module<= "00"; 
-                next_state <= reset1;
-            when reset1 =>  next_state <= reset2; rst <= '1';scan<='0';  start_module<= "00"; 
-            when reset2 =>  next_state <= reset3; rst <= '1';scan<='0';  start_module<= "00"; 
-            when reset3 =>  next_state <= reset4; rst <= '1';scan<='0';  start_module<= "00"; 
-            when reset4 =>  next_state <= phase2_start; rst <= '0'; scan<='0'; start_module<= "00";  
+                scan<='0'; rst <= '1'; start_module<= "00"; 
+                next_state <= phase2_start;
             when phase2_start =>
                 scan<='0'; rst <= '0'; start_module<= "11"; 
                 if (finph2 ='1') then
